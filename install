@@ -1,0 +1,33 @@
+#!/bin/bash
+if [ $# -lt 1 ]
+then
+        echo ""
+        echo " Usage: $0 <R path>"
+        echo ""
+        exit
+fi
+R=$1;
+pwd_dir=`pwd`
+echo install the packages in $pwd_dir
+cd "lib"
+if [ -d "$pwd_dir/lib/R-packages" ]
+        then
+        echo "$pwd_dir/lib/R-packages exists"
+        else
+        mkdir "$pwd_dir/lib/R-packages"
+fi
+echo ""
+echo "----installing PSO && seqLogo && sm && vioplot!----"
+echo ""
+for package in pso_1.0.3.tar.gz  seqLogo_1.10.0.tar.gz  sm_2.2-5.3.tar.gz vioplot_0.2.tar.gz
+do
+	$R CMD INSTALL $package -l $pwd_dir/lib/R-packages
+done
+echo ""
+echo "----installing Magic Enzyme Cutter!----"
+echo ""
+cd $pwd_dir/
+chmod 700 $pwd_dir/Magic-Enzyme-Cutter
+echo ""
+echo "----installation done!----"
+echo ""

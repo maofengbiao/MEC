@@ -1,0 +1,199 @@
+#!/panfs/home/VIP/maofb/software/perl-5.22.1/bin/perl -w
+#############################################
+#Program name:Magic-Enzyme-Cutter
+#Author: Fengbiao Mao
+#Email:maofengbiao08@163.com || 524573104@qq.com || maofengbiao@gmail.com
+#Tel:18810276383
+#version:1.1
+#Time:Tue Dec 17 21:47:27 2013
+#############################################
+use strict;
+use File::Basename;
+use Getopt::Long;
+use FindBin qw($Bin $Script);
+use Cwd qw(abs_path);
+use Data::Dumper;
+#use PerlIO::gzip;
+#use Math::CDF qw(:all);
+#use Statistics::Basic qw(:all);
+#use Math::Trig;
+#############################################
+my ($in,$trans,$enz,$flank,$chose,$grad,$out,$motif,$str,$max,$min,$end,$R,$p,$win_max,$Help);
+GetOptions
+(
+	"in=s" => \$in,
+	"out=s" => \$out,
+	"m=s" => \$motif,
+	"z=s" => \$enz,
+	"s=i" => \$str,
+	"e=i" => \$end,
+	"R=s" => \$R,
+	"n=i" => \$min,
+	"x=i" => \$max,
+	"f=i" => \$flank,
+	"g=i" => \$grad,
+	"c=s" => \$chose,
+	"t=s" => \$trans,
+	"help" => \$Help,
+);
+#############################################
+my $usage=<<USAGE;
+\n-------------------
+Magic-Enzyme-Cutter
+-------------------\n
+\tMaster Restriction Enzyme II digestion in silico && Evaluate the degradation products in many aspects && Calculate the optimal selection in expect (MEC).
+\tAuthor : Mao FengBiao,Cai WanShi,Wen YanLing.
+\tContact: maofengbiao\@gmail.com.\n\tVersion: 1.0.\nUsage:\n
+\t$0 -i <ref.fa> -o <outdir> [options] \n
+Require:
+	-i <in_file: reference in FASTA format>
+	-o <out_directory>\n
+Options:
+	-R <R path> [R]
+	-z <enzyme name or cut-Type> [MspI]
+	-m <motif which is focus on> [CG]
+	-s <start length of fragment> [40]
+	-e <end length of fragment> [1000]
+	-n <min regions of PSO search> [200]
+	-x <max regions of PSO search> [500]
+	-f <bases of flanking included> [4]
+	-g <graduated scale number> [100]
+	-c <change the vision,T or F> [F]
+	-t <transparency of Gel Figure> [50]
+	-h <display this help information>\n
+Note:\n\tThe delimiter of enzymes is ",", "_" or "+" while the delimiter of cut-Type is "-".
+\tThe brief-codes of cut-Type are supported, They are: R=G/A;Y=C/T;M=A/C;K=G/T;S=G/C;W=A/T;B=C/G/T;D=A/G/T;H=A/C/T;V=A/C/G;N=A/C/G/T.\n\tGzipped FASTA format input is supported.
+
+Example:
+	$0 -i <ref.fa> -o <outdir> -z MspI -s 100 -e 2000
+	$0 -i <ref.fa> -o <outdir> -R /Path/R -z C-CGG,C-GGC,G-CGC
+	$0 -i <ref.fa> -o <outdir> -R /Path/R -z MspI_AciI+TaqI
+	$0 -i <ref.fa> -o <outdir> -R /Path/R -z MspI+TTT-AAA+YAC-GTR
+	$0 -i <ref.fa> -o <outdir> -n 100 -x 300 -g 50 -f 5 -c T \n
+USAGE
+die $usage if ($Help || ! $in ||!$out);
+#&showLog( "---Program	$0	starts --> ".localtime()."\n";
+print  STDERR "---------------------------------------------------\n";
+&showLog("Magic Enzyme Cutting Start...");
+mkdir $out unless (-d $out);
+my $dig="$out/Digest";
+my $fig="$out/Figure";
+my $tab="$out/Tables";
+my $ico="$out/Icons";
+mkdir $dig unless (-d $dig);
+mkdir $fig unless (-d $fig);
+mkdir $tab unless (-d $tab);
+mkdir $ico unless (-d $ico);
+#if (defined $out)  { open(STDOUT,  '>', $out)  || die $!; }
+#############################################
+my $file=$in;
+my $fh;
+$motif||="CG";
+$enz||="MspI";
+$str||=40;
+$end||=1000;
+$R||="R";
+$min||=200;
+$max||=500;
+$flank||=4;
+$grad||=100;
+$chose||="F";
+$trans||="50";
+die "Error: -s (start length of fragment) must be not less than 1 && not bigger than '-e' value\n" if ($str<1 || $str>$end);
+die "Error: -g (graduated scale number) must be bigger than 1\n" if ($grad<1); 
+die "Error: -t (transparency) must be not less than 0\n" if ($trans <0);
+die "Error: -f (bases of flanking included) must be not less than 1\n" if ($flank<1);
+#############################################
+#print  STDERR "---------------------------------------------------\n";
+print  STDERR "---------------------------------------------------\n";
+&showLog( "Script:\nperl $0\n\t-i $in\n\t-o $out\n\t-m $motif\n\t-R $R\n\t-s $str\n\t-e $end\n\t-n $min\n\t-x $max\n\t-f $flank\n\t-g $grad\n\t-c $chose\n\t-z $enz\n\t-t $trans\n\n");
+chomp $file;
+&showLog( " --> Doing Master Restriction Enzyme II digestion in silico\n");
+&showLog( " ... perl $Bin/bin/Magic-enzyme-cutter.pl  $file  $enz  $Bin/bin/brief-code.txt > $dig/Digested_Genome.txt\n");
+`perl $Bin/bin/Magic-enzyme-cutter.pl  $file  $enz  $Bin/bin/brief-code.txt > $dig/Digested_Genome.txt`;
+&showLog( " <-- Done Master Restriction Enzyme II digestion in silico\n");
+
+&showLog( " --> Doing Fragment motifSeq count\n");
+&showLog( " ... perl $Bin/bin/Fragment-motifSeq-count.pl -i $dig/Digested_Genome.txt -m $motif -n $enz -s $str -e $end -o $fig -R $R\n");
+`perl $Bin/bin/Fragment-motifSeq-count.pl -i $dig/Digested_Genome.txt -m $motif -n $enz -s $str -e $end -o $fig -R $R`;
+&showLog( " <-- Done Fragment motifSeq count\n");
+
+&showLog( " --> Doing gel electrophoresis imaging\n");
+&showLog( " ... perl $Bin/bin/Gel-Ele.pl -i $fig/fragment_count.xls -s $str -e $end -n $enz -t $trans -o $fig -R $R\n");
+`perl $Bin/bin/Gel-Ele.pl -i $fig/fragment_count.xls -s $str -e $end -n $enz -t $trans -o $fig -R $R`;
+&showLog( " <-- Done gel electrophoresis imaging\n");
+
+&showLog( " --> Doing GC && OE count\n");
+&showLog( " ... perl $Bin/bin/GC-OE-count.pl -i $dig/Digested_Genome.txt -s $str -e $end -o $fig -R $R\n");
+`perl $Bin/bin/GC-OE-count.pl -i $dig/Digested_Genome.txt -s $str -e $end -o $fig -R $R`;
+&showLog( " <-- Done GC && OE count\n");
+
+&showLog( " --> Doing Bases distribution\n");
+&showLog( " ... perl $Bin/bin/Base-distribution.pl -i $dig/Digested_Genome.txt -s $str -e $end -o $fig -R $R -f $grad\n");
+`perl $Bin/bin/Base-distribution.pl -i $dig/Digested_Genome.txt -s $str -e $end -o $fig -R $R -f $grad`;
+&showLog( " <-- Done Bases distribution\n");
+
+&showLog( " --> Doing SeqLogo of Motif\n");
+&showLog( " ... perl $Bin/bin/Motif-seqLogo.pl -i $dig/Digested_Genome.txt -s $str -e $end -o $fig -R $R -f $flank -m $motif -c $chose\n");
+`perl $Bin/bin/Motif-seqLogo.pl  -i $dig/Digested_Genome.txt -s $str -e $end -o $fig -R $R -f $flank -m $motif -c $chose`;
+&showLog( " <-- Done SeqLogo of Motif\n");
+
+&showLog( " --> Doing optimal selection of artificial intellegence by PSO\n");
+&showLog( " ... perl $Bin/bin/PSO.pl -i $fig/fragment_count.xls -s $str -e $end -o $tab -R $R -min $min -max $max\n");
+`perl $Bin/bin/PSO.pl -i $fig/fragment_count.xls -s $str -e $end -o $tab -R $R -min $min -max $max`;
+&showLog( " <-- Done optimal selection of artificial intellegence by PSO\n");
+
+my ($start,$endpoint);
+my $fh2=open_file("$tab/pso.result.xls");
+while(<$fh2>){
+	chomp;
+	$_=~s/bp//g;
+	my @tmp=split;
+	next if ($.==1);	
+	if($.==2){
+		($start,$endpoint)=(@tmp)[0,1];
+	}
+}
+&showLog( " --> Doing distribution of Motif dense after PSO\n");
+&showLog( " ... perl $Bin/bin/PSO-Motif-dense.pl -i $dig/Digested_Genome.txt -s $start -e $endpoint -o $fig -R $R -m $motif -c $chose\n");
+`perl $Bin/bin/PSO-Motif-dense.pl -i $dig/Digested_Genome.txt -s $start -e $endpoint -o $fig -R $R -m $motif -c $chose`;
+&showLog( " <-- Done distribution of Motif dense after PSO\n");
+
+&showLog( " --> Doing Filing and Reporting\n");
+`cp $fig/*.xls $tab`;
+`cp $Bin/doc/Icons/*.png $ico`;
+&showLog( "...perl $Bin/bin/report.pl -i $dig/Digested_Genome.txt -s $str -e $end -o $fig -R $R\n");
+`perl $Bin/bin/Report.pl -i Figure -t $out/Tables/pso.result.xls -l Icons/tick.png -m Icons/Magic-Logo.png -s $str -e $end  -n $enz -o $out`;
+&showLog( "<-- Done Filing and Reporting\n");
+print  STDERR "---------------------------------------------------\n";
+&showLog("Magic Enzyme Cutting Done !!!");
+print  STDERR "---------------------------------------------------\n";
+print  STDERR "\n";
+sub showLog {
+        my ($info) = @_;
+        my @times = localtime; # sec, min, hour, day, month, year
+		print STDERR  sprintf("[%d-%02d-%02d %02d:%02d:%02d] %s\n", $times[5] + 1900,$times[4] + 1, $times[3], $times[2], $times[1], $times[0], $info);
+}
+sub Max{
+        my (@aa) = @_;
+        my $max=shift @aa;
+        foreach  (@aa) {$max=$_ if($_>$max);}
+        return $max;
+}
+sub min{
+        my (@aa) = @_;
+        my $min=shift @aa;
+        foreach  (@aa) {$min=$_ if($_<$min);}
+        return $min;
+}
+sub open_file {
+        my $file=shift;
+		my $fh;
+        if($file=~/\S+.gz$/){
+                open $fh,"gzip -dc $file |" or die $!;
+        }else{
+        open $fh,"$file" or die $!;
+        }
+        return $fh;
+}
+#&showLog( "<--Program	$0	ends --- ".localtime()."\n";
