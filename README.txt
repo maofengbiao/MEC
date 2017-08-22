@@ -3,7 +3,7 @@ Magic-Enzyme-Cutter (MEC)
 -------------------------
 
 Author : 
-	Mao FengBiao,Cai WanShi,Wen YanLing.
+	Mao Fengbiao
 Contact: 
 	maofengbiao@gmail.com.
 Version: 
