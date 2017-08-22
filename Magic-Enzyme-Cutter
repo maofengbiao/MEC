@@ -42,7 +42,7 @@ my $usage=<<USAGE;
 Magic-Enzyme-Cutter
 -------------------\n
 \tMaster Restriction Enzyme II digestion in silico && Evaluate the degradation products in many aspects && Calculate the optimal selection in expect (MEC).
-\tAuthor : Mao FengBiao,Cai WanShi,Wen YanLing.
+\tAuthor : Fengbiao Mao
 \tContact: maofengbiao\@gmail.com.\n\tVersion: 1.0.\nUsage:\n
 \t$0 -i <ref.fa> -o <outdir> [options] \n
 Require:
