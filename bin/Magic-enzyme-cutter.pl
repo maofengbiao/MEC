@@ -102,6 +102,7 @@ $/ = ">"; <IN>; $/ = "\n";
 while (<IN>){
 	chomp;
 	$chr = (split ( /\s+/, $_))[0];
+#	print STDERR "chr-->$chr\n";
 	$/ = ">";
 	$seq = <IN>;
 	$/ = "\n";
@@ -109,7 +110,7 @@ while (<IN>){
 	$seq =~ s/\s+//g;
 	$seq =~ s/>$//;
 	$seq = uc($seq);
-	&deal ($chr,\$seq);
+	deal ($chr,\$seq);
 }
 close (IN);
 
@@ -144,22 +145,24 @@ sub deal{
 	foreach my $f (sort {$a<=>$b} keys %enzymes){
 	    my @start1=(); 
 		my @patt=@{$patterns{$f}};
-		foreach my $ele (@patt){
+		foreach my $ele (@patt){#foreach each patten
+	#		print STDERR "patten-->$ele\n";
 			my $st1 = index($$seq,"$ele");
+	#		print STDERR "start1-->$st1\n";
 			push @start1,$st1;
 		}
 		my $minstart1 = min(@start1);
 		$allstart1{$f}=$minstart1;
 	}
 	#get the min start1 from all enzymes
-	my $tag=0;
+    my $tag=0;
     my $flag1=0;
     foreach my $k (keys %allstart1){
-        if ($tag==0){
+        if ($tag==0){#frist one
             $start1=$allstart1{$k};
             $flag1 = $k; 
             $tag=1;
-        }else{
+        }else{#next one
             if ($allstart1{$k}<$start1){
                 $start1 = $allstart1{$k};
                 $flag1 = $k;    
@@ -177,6 +180,11 @@ sub deal{
 		my $minstart2 = min(@start2);
 		$allstart2{$f}=$minstart2;
 	}
+	if ($start1 == -1){#no any match; exit to out
+		my $chrlength=length($$seq);
+		print STDOUT "$chr\t1\t$chrlength\t$chrlength\t$$seq\n";
+		return;
+	}
 	#get the min start2 from all enzymes
 	my $tag2=0;
 	my $flag2=0;
@@ -190,19 +198,21 @@ sub deal{
 				$start2 = $allstart2{$k};
 				$flag2 = $k;
 			}
-        }
-    } 
+        	}
+    	} 
 	my $length;
 	my $seqs;
 	my $pos=$enzymes{$flag1}[0];
 	my $tmp_len=$start1 + $pos;
 	$seqs = substr ($$seq,0,$tmp_len);
-	print STDOUT join "\t",$chr,1,$tmp_len,$tmp_len,$seqs,"\n";
-	while ($start2 != -1){
+	print STDOUT join "\t",$chr,1,$tmp_len,$tmp_len,$seqs;
+	print STDOUT "\n";
+	while ($start2 != -1){ #correction
 #		my @start2=();
 		$length = $start2 - $start1;
 		$seqs = substr ($$seq,$start1 + $pos,$length);
-		print join "\t",$chr,$start1+$pos+1,$start2 + $pos,$length,$seqs,"\n";
+		print STDOUT join "\t",$chr,$start1+$pos+1,$start2 + $pos,$length,$seqs;
+		print STDOUT "\n";
 		$start1 = $start2;
 		### new run ###
 		foreach my $f (sort {$a<=>$b} keys %enzymes){
@@ -215,8 +225,8 @@ sub deal{
         	my $minstart2 = min(@start2);
         	$allstart2{$f}=$minstart2;
     	}	
-		my $tag2=0;
-	    my $flag2=0;
+	my $tag2=0;
+	my $flag2=0;
     	foreach my $k (keys %allstart2){
         	if ($tag2==0){
             	$start2=$allstart2{$k};
@@ -234,7 +244,8 @@ sub deal{
 	$seqs = substr ($$seq,$start1 + $pos);
 	my $len_final=length($seqs);
 	my $tmp_end=$len_final+($start1 + $pos);
-	print STDOUT join "\t",$chr,$start1 + $pos+1,$tmp_end,$len_final,$seqs,"\n";
+	print STDOUT join "\t",$chr,$start1 + $pos+1,$tmp_end,$len_final,$seqs;
+	print STDOUT "\n";
 }
 sub Max{
         my (@aa) = @_;
